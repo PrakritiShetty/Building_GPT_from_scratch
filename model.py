@@ -53,3 +53,32 @@ def get_batch(split):
   y = torch.stack([data[i+1:i+block_size+1] for i in ix])
   x,y = x, y
   return x,y
+
+
+"""LANGUAGE MODEL - BIGRAM"""
+class BigramLanguageModel(nn.Module):
+  def __init__(self):
+    super().__init__()
+    # creating a token embedding table such that each token directly reads off the logits for the next token from a lookup table
+    self.token_embedding_table = nn.Embedding(vocab_size, vocab_size)  
+     
+
+  def forward(self, idx, targets=None):
+    # idx and targets are both (0,T) tensor of ints
+    logits = self.token_embedding_table(idx) #(B,T,C) 
+    # every one of our input will lookup the embedding table and pluck out a row corresp to that idx. Then pytorch will assemble all of that into a batch*channel*time tensor
+    # this is logits or score for next char in sequence - hence we have successfully predicted next char in sequence
+    
+
+    # directly loss = F.cross_entropy(logits, targets) won't work, because pytorch cross entropy documentation says that if you have a multi dim input, should be B*C*T and not B*T*C
+
+    if targets is None:
+      loss = None
+    else:
+      B,T,C = logits.shape # unpacks numbers
+      logits = logits.view(B*T, C) #stretches out B and T dims as one, and preserves channel dimensions
+      #similarly, targets is B,T and we want it to be B*T - 1D
+      targets = targets.view(B*T)
+      loss = F.cross_entropy(logits, targets)
+    return logits, loss
+
