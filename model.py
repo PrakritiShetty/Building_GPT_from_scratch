@@ -82,3 +82,8 @@ class BigramLanguageModel(nn.Module):
       loss = F.cross_entropy(logits, targets)
     return logits, loss
 
+
+m = BigramLanguageModel()
+
+context = torch.zeros((1,1), dtype=torch.long)
+print(decode(m.generate(context,max_new_tokens=400)[0].tolist()))
