@@ -76,12 +76,28 @@ class BigramLanguageModel(nn.Module):
       loss = None
     else:
       B,T,C = logits.shape # unpacks numbers
-      logits = logits.view(B*T, C) #stretches out B and T dims as one, and preserves channel dimensions
+      logits = logits.view(B*T, C) # stretches out B and T dims as one, and preserves channel dimensions
       #similarly, targets is B,T and we want it to be B*T - 1D
       targets = targets.view(B*T)
       loss = F.cross_entropy(logits, targets)
     return logits, loss
 
+
+  def generate(self,idx,max_new_tokens): 
+        # idx (B,T) array refers to the current context of chars in some batch
+        # generate's job is to take this (B,T) and make it (B,T+1)/(B,T+2).....
+        for _ in range(max_new_tokens):
+          # get predictions
+          logits, loss = self(idx) 
+          # focus only on last timestep (-1 denotes last element in time dim) - last element in time dim means character just before
+          logits = logits[:,-1,:] # becomes (B,C)
+          # apply softmax to get probabs
+          probs = F.softmax(logits, dim=-1) #(B,C)
+          # sample from the dist and take 1 sample - because for each dim we're gonna have just one prediction for what comes next
+          idx_next = torch.multinomial(probs, num_samples=1) #(B,1)
+          # finally whatever is generated is concatenated with the previous idx along the first dim (time dim)
+          idx = torch.cat((idx, idx_next), dim=1) # gives (B,T+1)
+        return idx
 
 m = BigramLanguageModel()
 
